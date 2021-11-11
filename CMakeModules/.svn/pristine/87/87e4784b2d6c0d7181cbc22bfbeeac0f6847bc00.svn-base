@@ -1,0 +1,64 @@
+
+# Target upload commands
+# USB ID for DFU upload
+#
+#VENDOR_ID  := 1EAF
+#PRODUCT_ID := 0003
+#
+#UPLOAD_ram   := $(SUPPORT_PATH)/scripts/reset.py && sleep 1 && $(DFU) -a0 -d $(VENDOR_ID):$(PRODUCT_ID) -D $(BUILD_PATH)/$(BOARD).bin -R
+#UPLOAD_flash := $(SUPPORT_PATH)/scripts/reset.py && sleep 1 && $(DFU) -a1 -d $(VENDOR_ID):$(PRODUCT_ID) -D $(BUILD_PATH)/$(BOARD).bin -R
+#UPLOAD_jtag  := $(OPENOCD_WRAPPER) flash
+#
+
+set(PORT $ENV{MAPLE_PORT})
+if (NOT PORT)
+    set(PORT ${MAPLE_PORT})
+endif()
+
+
+# convert an elf to a flashable .bin file.
+# TODO: make it so that it finds ${name_} in the CMAKE_RUNTIME_OUTPUT_DIRECTORY?
+function(maple_bin name_)
+  if( NOT name_ )
+    message(FATAL_ERROR "function( maple_bin ) missing arguments...!")
+  endif()
+  add_custom_target(${name_}.bin)
+  add_dependencies(${name_}.bin ${name_})
+  
+  add_custom_command(TARGET ${name_}.bin POST_BUILD
+    COMMAND ${MAPLE_OBJCOPY} -Obinary  ${name_} ${name_}.bin
+    )
+endfunction()
+
+
+# Flash a file to your Maple!
+# TODO: make it so that it finds ${name_}.hex in the CMAKE_RUNTIME_OUTPUT_DIRECTORY?
+# TODO: fix the name.  It should not be flash_f()
+# TODO: add "PORT /dev/whatever" as an option...
+function(generate_maple_install name_)
+  if( NOT port_)
+    set(port_ "/dev/ttyACM0")
+  endif()
+  maple_bin( ${name_} )
+  add_custom_target(flash)
+  set(bin_name "${name_}.bin")
+  add_dependencies(flash ${bin_name})
+  add_dependencies(reset ${bin_name})
+
+  set(FLASH_COMMAND ${MAPLE_DFU} -a${MAPLE_${MAPLE_PLATFORM}_UPLOAD_ALTID} -d ${MAPLE_${MAPLE_PLATFORM}_UPLOAD_USBID} -D ${bin_name} -R)
+
+  add_custom_command(TARGET flash POST_BUILD
+    COMMAND ${MAPLE_RESET}
+    COMMAND sleep 1s
+    COMMAND ${FLASH_COMMAND}
+  )
+endfunction()
+
+add_custom_target(reset)
+add_custom_command(TARGET reset POST_BUILD
+  COMMAND "${MAPLE__RESET}"
+)
+
+#add_custom_target(disassemble)
+
+

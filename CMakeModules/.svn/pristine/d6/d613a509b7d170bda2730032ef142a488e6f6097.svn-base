@@ -1,0 +1,399 @@
+# FindMaple.cmake
+#
+# Example usage:
+#
+#   set(CMAKE_MODULE_PATH "~/CMakeModules" ${CMAKE_MODULE_PATH})
+#   set(MAPLE_PLATFORM maple_RET6)
+#   find_package(Maple REQUIRED )
+#   include_directories(${MAPLE_INCLUDE_PATH})
+#   file(GLOB cpp_ src/*.cpp)
+#   add_executable(${target_name} ${cpp_})
+#   target_link_libraries(${target_name} ${MAPLE_LIBS})
+#
+#
+# Need to document FindMaple(...):  what is the ...?
+#
+#
+# This module accepts the following optional variables:
+#
+#   MAPLE_PREFER_IDE     -- Use the IDE instead of a Unix toolchain
+#   MAPLE_PREFER_UTC     -- Use the Unix Toolchain (UTC) instead of the IDE tools (this is the default behavior)
+#   MAPLE_SEARCH_PATHS   -- Places to look for the Maple tools and source files.  Appends "reasonable" values.
+#
+# This modules defines the following variables:
+#
+#   MAPLE_INCLUDE_PATH         -- use this inside your include_directories( ${MAPLE_INCLUDE_PATH} ) 
+#   MAPLE_LIBS                 -- link against these libraries
+#
+#   MAPLE_IDE
+#   MAPLE_UTC
+#
+#   MAPLE_IDE_PATH             -- Location of the Maple IDE
+#    MAPLE_IDE_COMPILER_PATH    -- path constaining the ARM crosscompiler gcc toolset
+#    MAPLE_IDE_LIBMAPLE_PATH    -- libmaple is the Maple hardware specific source
+#    MAPLE_IDE_WIRISH_PATH      -- path to the Wirish source and headers (this is similar to the Arduino Wiring library). 
+#    MAPLE_IDE_EXTRA_LIB_PATH   -- path to the extra libraries (e.g. Servo, Wire, LiquidCrystal)
+#    MAPLE_IDE_BOARDS_FILE      -- the boards.txt definitions file
+#    MAPLE_IDE_INCLUDE_PATH     -- the include path
+#
+#   MAPLE_UTC_COMPILER_PATH     -- path containing the IDE independant ARM crosscompiler toolset
+#   MAPLE_UTC_PATH         -- top level libmaple path (this is NOT the same as libmaple/libmaple or ide/libmaple!)
+#    MAPLE_UTC_LIBMAPLE_PATH     -- libmaple is the Maple hardware specific source
+#    MAPLE_UTC_WIRISH_PATH       -- path to the Wirish source and headers (this is similar to the Arduino Wiring library).
+#    MAPLE_UTC_EXTRA_LIB_PATH    -- path to the extra libraries (e.g. Servo, Wire, LiquidCrystal)
+#    MAPLE_UTC_INCLUDE_PATH     -- the include path
+#
+#
+# Notes for maintainers:
+#   MAPLE_SEARCH_PATHS    needs better/more reasonable defaults
+#   MAPLE_VERSION_NAMES   needs a better system.  It's pretty hokey right now.
+#   FindMAPLE(...)        needs explicit support for versions, boards, etc
+#
+
+#
+#  What to do with the ld config stuff?  
+#    libmaple/support/ld
+#    maple-ide-0.0.11/arduino/hardware/leaflabs/cores/maple/ 
+#
+#  Need to manage the boards file, too.  It's easy when we have the IDE, but what if we don't?
+#
+message(WARNING "assemble libcs3_stm32_src")
+message(WARNING "boards.txt")
+#message(WARNING "autodecode .pde")
+
+
+include(FindPackageHandleStandardArgs)
+
+#
+# Some reasonable search paths
+#
+set(MAPLE_SEARCH_PATHS ${MAPLE_SEARCH_PATHS}
+  ~
+  ~/installs/
+  ~/installs/maple
+  ~/installs/leaflabs
+)
+
+if( LINUX )
+  set(MAPLE_SEARCH_PATHS ${MAPLE_SEARCH_PATHS}
+    /usr/local
+    /usr/local/maple
+    /usr/local/leaflabs
+    /usr/local/share
+    /usr/local/share/maple
+    /usr/local/share/leaflabs
+    /usr/share
+    /opt
+  )
+
+elseif( APPLE )
+
+  set(MAPLE_SEARCH_PATHS ${MAPLE_SEARCH_PATHS}
+  	/Applications/MapleIDE.app/Contents/Resources/Java
+  )
+
+elseif( WIN32 )
+
+  set(MAPLE_SEARCH_PATHS ${MAPLE_SEARCH_PATHS}
+    C:/maple-0022/maple-0022
+  )
+
+endif()
+
+
+# --------------------------------------------------
+# Search for the Maple IDE
+#
+
+
+
+set(MAPLE_VERSION_NAMES )
+#  ***todo***  version.  If version is given in the arg list, we should add it next and skip the others
+foreach(VERSION RANGE 99 12)
+    list(APPEND MAPLE_VERSION_NAMES maple-ide-v0.0.${VERSION})
+endforeach()
+list(APPEND MAPLE_VERSION_NAMES maple-ide-0.0.11)
+
+find_path(MAPLE_IDE_PATH 
+  NAMES
+    core.jar
+    maple-ide
+  PATHS
+    ${MAPLE_SEARCH_PATHS}
+  PATH_SUFFIXES
+    ${MAPLE_VERSION_NAMES}
+  DOC
+    "Maple IDE Path"
+)
+
+if( MAPLE_IDE_PATH )
+
+  # Search for tools, source, support inside IDE
+
+  find_path( MAPLE_IDE_COMPILER_PATH arm-none-eabi-gcc
+    PATHS
+      ${MAPLE_IDE_PATH}
+    PATH_SUFFIXES
+      hardware/tools/arm/bin
+      arduino/hardware/tools/arm/bin
+  )
+
+  find_path( MAPLE_IDE_WIRISH_PATH WProgram.h
+    PATHS
+      ${MAPLE_IDE_PATH}
+    PATH_SUFFIXES
+      hardware/leaflabs/cores/maple/
+      arduino/hardware/leaflabs/cores/maple/
+  )
+
+  find_path( MAPLE_IDE_EXTRA_LIB_PATH Wire/Wire.cpp
+    PATHS
+      ${MAPLE_IDE_PATH}
+    PATH_SUFFIXES
+      libraries
+  )
+
+  find_path( MAPLE_IDE_LIBMAPLE_PATH libmaple.h
+    PATHS
+      ${MAPLE_IDE_PATH}
+    PATH_SUFFIXES
+      hardware/leaflabs/cores/maple/
+      arduino/hardware/leaflabs/cores/maple/
+  )
+
+ find_path(MAPLE_IDE_LD_PATH maple/flash.ld
+    PATHS
+      ${MAPLE_IDE_PATH}
+    PATH_SUFFIXES
+      hardware/leaflabs/cores/maple/
+      arduino/hardware/leaflabs/cores/maple/
+    )
+
+  find_file(MAPLE_IDE_DFU dfu-util
+    PATHS
+      ${MAPLE_IDE_PATH}
+    PATH_SUFFIXES
+      ${MAPLE_IDE_COMPILER_PATH}
+      hardware/tools/arm/bin
+  )
+
+  find_file(MAPLE_IDE_OBJDUMP arm-none-eabi-objdump
+    PATHS
+      ${MAPLE_IDE_COMPILER_PATH}
+  )
+
+  find_file(MAPLE_IDE_OBJCOPY arm-none-eabi-objcopy
+    PATHS
+      ${MAPLE_IDE_COMPILER_PATH}
+  )
+
+  find_file(MAPLE_IDE_SIZE arm-none-eabi-size
+    PATHS
+      ${MAPLE_IDE_COMPILER_PATH}
+  )
+
+  find_file(MAPLE_IDE_BOARDS_FILE boards.txt
+    PATHS
+      ${MAPLE_IDE_PATH}
+    PATH_SUFFIXES
+      hardware/leaflabs
+    DOC "This is the Maple boards.txt file.  It contains descriptions of the various boards."
+  )
+
+  find_file(MAPLE_IDE_RESET reset.py
+    PATHS
+      #${MAPLE_IDE_PATH}
+      ${CMAKE_CURRENT_LIST_DIR}/maple/
+    #PATH_SUFFIXES
+      #support/scripts
+    )
+
+  set(MAPLE_IDE_INCLUDE_PATH ${MAPLE_IDE_WIRISH_PATH} ${MAPLE_IDE_LIBMAPLE_PATH})
+
+  find_package_handle_standard_args(MAPLE_IDE DEFAULT_MSG 
+    MAPLE_IDE_COMPILER_PATH
+    MAPLE_IDE_WIRISH_PATH
+    MAPLE_IDE_EXTRA_LIB_PATH
+    MAPLE_IDE_LIBMAPLE_PATH
+    MAPLE_IDE_LD_PATH
+    MAPLE_IDE_DFU
+    MAPLE_IDE_OBJDUMP
+    MAPLE_IDE_OBJCOPY
+    MAPLE_IDE_SIZE
+    MAPLE_IDE_RESET
+    MAPLE_IDE_BOARDS_FILE
+  )
+
+endif()
+
+# --------------------------------------------------
+# Search for unix toolchain OUTSIDE of the ide
+#
+
+# todo: improve path suffixes
+find_path( MAPLE_UTC_COMPILER_PATH arm-none-eabi-gcc
+  PATHS
+    ${MAPLE_SEARCH_PATHS}
+  PATH_SUFFIXES
+    arm/arm-none-eabi/bin
+    arm-none-eabi/bin
+    arm/bin
+)
+
+find_path( MAPLE_UTC_PATH wirish/WProgram.h
+  PATHS
+    ${MAPLE_SEARCH_PATHS}
+  PATH_SUFFIXES
+    libmaple
+)
+
+if( MAPLE_UTC_PATH )
+  find_path( MAPLE_UTC_WIRISH_PATH WProgram.h
+    PATHS
+      ${MAPLE_UTC_PATH}
+    PATH_SUFFIXES
+      wirish
+  )
+
+  find_path( MAPLE_UTC_WIRISH_PATH WProgram.h
+    PATHS
+      ${MAPLE_UTC_PATH}
+    PATH_SUFFIXES
+      wirish
+  )
+
+  find_path( MAPLE_UTC_EXTRA_LIB_PATH Wire/Wire.cpp
+    PATHS
+      ${MAPLE_UTC_PATH}
+    PATH_SUFFIXES
+      libraries
+  )
+
+  find_path( MAPLE_UTC_EXTRA_LIB_PATH Wire/Wire.cpp
+    PATHS
+      ${MAPLE_UTC_PATH}
+    PATH_SUFFIXES
+      libraries
+  )
+
+  find_path( MAPLE_UTC_LIBMAPLE_PATH libmaple.h
+    PATHS
+      ${MAPLE_UTC_PATH}
+    PATH_SUFFIXES
+      libmaple
+  )
+
+ find_path(MAPLE_UTC_LD_PATH maple/flash.ld
+    PATHS
+      ${MAPLE_UTC_PATH}
+    PATH_SUFFIXES
+      support/ld
+      ld
+    )
+
+  find_file(MAPLE_UTC_RESET reset.py
+    PATHS
+      ${MAPLE_UTC_PATH}
+    PATH_SUFFIXES
+      support/scripts
+    )
+
+  find_file(MAPLE_UTC_DFU dfu-util
+    PATHS
+      ${MAPLE_UTC_COMPILER_PATH}
+  )
+
+  find_file(MAPLE_UTC_OBJDUMP arm-none-eabi-objdump
+    PATHS
+      ${MAPLE_UTC_COMPILER_PATH}
+  )
+
+  find_file(MAPLE_UTC_OBJCOPY arm-none-eabi-objcopy
+    PATHS
+      ${MAPLE_UTC_COMPILER_PATH}
+  )
+
+  find_file(MAPLE_UTC_SIZE arm-none-eabi-size
+    PATHS
+      ${MAPLE_UTC_COMPILER_PATH}
+  )
+
+  set(MAPLE_UTC_INCLUDE_PATH ${MAPLE_UTC_WIRISH_PATH} ${MAPLE_UTC_LIBMAPLE_PATH})
+
+  find_package_handle_standard_args(MAPLE_UTC DEFAULT_MSG 
+    MAPLE_UTC_COMPILER_PATH
+    MAPLE_UTC_WIRISH_PATH
+    MAPLE_UTC_EXTRA_LIB_PATH
+    MAPLE_UTC_LIBMAPLE_PATH
+    MAPLE_UTC_LD_PATH
+    MAPLE_UTC_RESET
+    MAPLE_UTC_DFU
+    MAPLE_UTC_OBJDUMP
+    MAPLE_UTC_OBJCOPY
+    MAPLE_UTC_SIZE
+    MAPLE_UTC_BOARDS_FILE
+  )
+
+endif()
+
+
+#
+#  Need to manage the boards file.  It's easy when we have the IDE, but what if we don't?
+#
+#  What about the LD files?
+
+
+if( MAPLE_IDE_FOUND AND ((NOT MAPLE_UTC_FOUND) OR MAPLE_PREFER_IDE) )
+  message(STATUS "Using Maple IDE")
+
+  set( MAPLE_INCLUDE_PATH ${MAPLE_IDE_INCLUDE_PATH} )
+  set( MAPLE_LIBMAPLE_PATH ${MAPLE_IDE_LIBMAPLE_PATH} )
+  set( MAPLE_WIRISH_PATH ${MAPLE_IDE_WIRISH_PATH} )
+  set( MAPLE_EXTRA_LIB_PATH ${MAPLE_IDE_EXTRA_LIB_PATH} )
+  set( MAPLE_LD_PATH ${MAPLE_IDE_LD_PATH} )
+  set( MAPLE_DFU ${MAPLE_IDE_DFU} )
+  set( MAPLE_OBJCOPY ${MAPLE_IDE_OBJCOPY} )
+  set( MAPLE_OBJDUMP ${MAPLE_IDE_OBJDUMP} )
+  set( MAPLE_SIZE ${MAPLE_IDE_SIZE} )
+  set( MAPLE_RESET ${MAPLE_IDE_RESET} )
+  set( MAPLE_BOARDS_FILE ${MAPLE_IDE_BOARDS_FILE} )
+  
+  set( MAPLE_FOUND ${MAPLE_IDE_FOUND})
+elseif( MAPLE_UTC_FOUND)
+  message(STATUS "Using Maple UTC")
+
+  set( MAPLE_INCLUDE_PATH ${MAPLE_UTC_INCLUDE_PATH} )
+  set( MAPLE_LIBMAPLE_PATH ${MAPLE_UTC_LIBMAPLE_PATH} )
+  set( MAPLE_WIRISH_PATH ${MAPLE_UTC_WIRISH_PATH} )
+  set( MAPLE_EXTRA_LIB_PATH ${MAPLE_UTC_EXTRA_LIB_PATH} )
+  set( MAPLE_LD_PATH ${MAPLE_UTC_LD_PATH} )
+  set( MAPLE_DFU ${MAPLE_UTC_DFU} )
+  set( MAPLE_OBJCOPY ${MAPLE_UTC_OBJCOPY} )
+  set( MAPLE_OBJDUMP ${MAPLE_UTC_OBJDUMP} )
+  set( MAPLE_SIZE ${MAPLE_UTC_SIZE} )
+  set( MAPLE_RESET ${MAPLE_UTC_RESET} )
+  set( MAPLE_BOARDS_FILE ${MAPLE_UTC_BOARDS_FILE} )
+
+  set( MAPLE_FOUND ${MAPLE_UTC_FOUND})
+else()
+  message(FATAL_ERROR "Couldn't find Maple")
+endif()
+
+
+
+
+if( MAPLE_FOUND )
+  include(${CMAKE_CURRENT_LIST_DIR}/maple/boards.cmake)
+  include(${CMAKE_CURRENT_LIST_DIR}/maple/libraries.cmake)
+  include(${CMAKE_CURRENT_LIST_DIR}/maple/flash.cmake)
+  include(${CMAKE_CURRENT_LIST_DIR}/maple/maplePlatform.cmake)
+
+  if(MAPLE_PLATFORM)
+    # upcase an inbound platform and then make the call to compile the libraries and set linker flags, etc.
+    string(TOUPPER "${MAPLE_PLATFORM}" MAPLE_PLATFORM)
+    set_maple_platform(${MAPLE_PLATFORM})
+  endif()
+
+  mark_as_advanced(MAPLE_INCLUDE_DIR)
+endif()
+

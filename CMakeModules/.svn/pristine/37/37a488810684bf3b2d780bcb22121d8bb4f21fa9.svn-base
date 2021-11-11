@@ -1,0 +1,78 @@
+
+
+#set(LDD_HACK_LOCATION ${CMAKE_CURRENT_LIST_DIR}/ldd_hack.cpp)
+
+#
+# add_maple_core function
+#
+function(add_maple_core)
+  if( NOT MAPLE_PLATFORM)
+    message(FATAL_ERROR "MAPLE_PLATFORM not set.  Can't build libraries without it!")
+  endif()
+  if( MAPLE_LIBS)
+    message(FATAL_ERROR "Reinclusion of function add_maple_core().")
+  endif()
+  message(STATUS "Adding maple_core library")
+  # find the core files and remove main.cpp!  (Main is used for sketches, but we aren't writing sketches...
+  # then build
+  file(GLOB source_ 
+    ${MAPLE_WIRISH_PATH}/*.h*
+    ${MAPLE_WIRISH_PATH}/*.c*
+    ${MAPLE_LIBMAPLE_PATH}/*.h*
+    ${MAPLE_LIBMAPLE_PATH}/*.c*
+    ${MAPLE_LIBMAPLE_PATH}/*.s*
+    ${MAPLE_LIBMAPLE_PATH}/*.S*
+  )
+  # set assembly files to c source
+  foreach(SOURCE_FILE ${source_} )
+    set(is_assembly "")
+    string(REGEX MATCH "[.][sS]\$" is_assembly "${SOURCE_FILE}")
+    if(is_assembly)
+      set_property(SOURCE ${SOURCE_FILE} PROPERTY LANGUAGE C)
+    endif()
+  endforeach()
+
+  list(REMOVE_ITEM source_ "${MAPLE_WIRISH_PATH}/main.cxx")
+  include_directories(${MAPLE_INCLUDE_PATH})
+  add_library(maple_core ${source_} ${LDD_HACK_LOCATION})
+
+  set(MAPLE_LIBS maple_core PARENT_SCOPE)
+endfunction()
+
+#
+# add_maple_component function
+#
+# Adds the component library to MAPLE_LIBS and the include dir to MAPLE_INCLUDE_DIR
+function(add_maple_component lib_)
+  # insure core libraries exist, add if not and provide dev warning
+  if( NOT MAPLE_LIBS)
+    message(AUTHOR_WARNING "add_maple_component(x) called without/before call to add_maple_core().  Doing it ourselves... ")
+    add_maple_core()
+  endif()
+
+  message(STATUS "Adding ${lib_} library")
+  # set the dir, and then test for the correct header file, set an error on failure (although this should MAYBE be a warning)
+  set( mydir_ ${MAPLE_EXTRA_LIB_PATH}/${lib_})
+  find_path(testpath_ ${lib_}.h ${lib_}.hpp
+    PATHS
+      ${mydir_}
+    )
+  if(NOT testpath_)
+    message(FATAL_ERROR "Could not find Maple library: ${lib_}")
+  endif()
+  # add the source, don't forget the utility directory!
+  file(GLOB source_ 
+    ${mydir_}/*.c*
+    ${mydir_}/*.h*
+    ${mydir_}/utility/*.c*
+    ${mydir_}/utility/*.h*
+    )
+
+  include_directories(${mydir_} ${mydir_}/utility)
+  add_library(${lib_} ${source_})
+
+  # set the variables, make sure maple core is the last entry
+  set( MAPLE_LIBS ${lib_} ${MAPLE_LIBS} PARENT_SCOPE)  
+  set( MAPLE_INCLUDE_DIR ${MAPLE_INCLUDE_DIR} ${mydir_} PARENT_SCOPE)
+endfunction()
+

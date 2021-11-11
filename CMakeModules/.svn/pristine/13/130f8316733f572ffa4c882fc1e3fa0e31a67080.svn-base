@@ -1,0 +1,61 @@
+#
+# Find the include directory for libsb
+#
+# Copyright 2015 Scott Bailey
+# License: TBD
+#
+#
+# Variables (CMake) that this module consumes:
+#
+#   none
+#
+# Functions/macros defined by this module:
+#
+#   none
+#
+# Variables defined by this module:
+#
+#   LIBSB_FOUND
+#   LIBSB_INCLUDE_DIR                   The include directory.
+#
+#   LIBSB_HPP                           The header files.
+#   LIBSB_DETAIL_HPP                    The header files including detal/*
+#
+# Variables modified by this moudule:
+#
+#    none
+
+
+
+
+
+find_path( LIBSB_INCLUDE_DIR    sb/thread/auto_thread.hpp
+  PATHS
+    ~/projects
+    ~/bailey
+  PATH_SUFFIXES
+    libsb
+    libsb/trunk
+  NO_DEFAULT_PATH
+  NO_CMAKE_ENVIRONMENT_PATH
+  NO_CMAKE_PATH
+  NO_SYSTEM_ENVIRONMENT_PATH
+  NO_CMAKE_SYSTEM_PATH
+  NO_CMAKE_FIND_ROOT_PATH
+)
+
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LIBSB DEFAULT_MSG
+  LIBSB_INCLUDE_DIR
+)
+
+
+if( LIBSB_FOUND )
+  file(GLOB LIBSB_HPP ${LIBSB_INCLUDE_DIR}/sb/*.hpp)
+  file(GLOB LIBSB_DETAIL_HPP ${LIBSB_INCLUDE_DIR}/sb/*.hpp ${LIBSB_INCLUDE_DIR}/sb/detail/*.hpp)
+
+  add_library(libsb INTERFACE)
+  #target_sources(libsb INTERFACE )
+  target_include_directories(libsb INTERFACE "${LIBSB_INCLUDE_DIR}")
+endif()

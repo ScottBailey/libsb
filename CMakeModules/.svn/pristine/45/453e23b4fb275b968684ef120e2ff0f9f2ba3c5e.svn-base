@@ -1,0 +1,86 @@
+
+
+function(set_maple_platform platform_in_)
+  string(TOUPPER "${platform_in_}" platform_)
+  # reinclusion notification:
+  if(MAPLE_PLATFORM)
+    if( MAPLE_PLATFORM STREQUAL platform_ )
+#      message(AUTHOR_WARNING "Attempting to call maple_platform when MAPLE_PLATFORM is already set.")
+#      return()
+    else()
+      message(FATAL_ERROR "Attempting to call maple_platform when MAPLE_PLATFORM is already set AND ${platform_} != ${MAPLE_PLATFORM}")
+    endif()
+  else()
+    set(MAPLE_PLATFORM ${platform_} )
+    set(MAPLE_PLATFORM ${platform_} PARENT_SCOPE)
+  endif()
+
+  # test to see if name exists...
+  if( NOT MAPLE_${platform_}_NAME )
+    show_maple_platforms()
+    message(FATAL_ERROR "${platform_in_} doesn't seem to be a valid maple platform.")
+  endif()
+
+  # 
+  # Set the build flags
+  #
+  if( MAPLE_${MAPLE_PLATFORM}_BUILD_CORE STREQUAL "maple" )
+    # locally
+    set(CMAKE_SYSTEM_NAME Generic)
+    set(CMAKE_C_COMPILER ${MAPLE_IDE_COMPILER_PATH}/arm-none-eabi-gcc)
+    set(CMAKE_CXX_COMPILER ${MAPLE_IDE_COMPILER_PATH}/arm-none-eabi-g++)
+    set(CMAKE_AR ${MAPLE_IDE_COMPILER_PATH}/arm-none-eabi-ar)
+    set(CMAKE_RANLIB ${MAPLE_IDE_COMPILER_PATH}/arm-none-eabi-ranlib)
+    set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+    #set(TUNNING_FLAGS "-funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums")
+    set(MAPLE_GLOBAL_FLAGS 
+      " -D${MAPLE_${platform_}_BUILD_VECT} -DBOARD_${MAPLE_${platform_}_BUILD_BOARD} -DMCU_${MAPLE_${platform_}_BUILD_MCU} -DERROR_LED_PORT=${MAPLE_${platform_}_BUILD_ERROR_LED_PORT} -DERROR_LED_PIN=${MAPLE_${platform_}_BUILD_ERROR_LED_PIN} -D${MAPLE_${platform_}_BUILD_DENSITY}"
+      )
+
+    # -Os -g3
+    set(CMAKE_C_FLAGS 
+      " -gdwarf-2  -mcpu=cortex-m3 -mthumb -march=armv7-m -nostdlib -ffunction-sections -fdata-sections -Wl,--gc-sections ${MAPLE_GLOBAL_FLAGS}"
+      )
+    set(CMAKE_CXX_FLAGS "-fno-rtti -fno-exceptions ${CMAKE_C_FLAGS} ${MAPLE_GLOBAL_FLAGS}")
+
+    set(MAPLE_LD_FLAGS 
+      "-T${MAPLE_LD_PATH}/${MAPLE_${platform_}_BUILD_LINKER} -L${MAPLE_LD_PATH} -mcpu=cortex-m3 -mthumb -Xlinker --gc-sections --print-gc-sections --march=armv7-m -Wall"
+      )
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MAPLE_LD_FLAGS}")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${MAPLE_LD_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${MAPLE_LD_FLAGS}")
+    
+
+  elseif( MAPLE_${MAPLE_PLATFORM}_BUILD_CORE STREQUAL "pic32" )
+    message(FATAL_ERROR "pic32/chipkit not implemented, yet...")
+  endif()
+
+  # Now in parent scope...
+  set(CMAKE_SYSTEM_NAME ${CMAKE_SYSTEM_NAME} PARENT_SCOPE)
+  set(CMAKE_C_COMPILER ${CMAKE_C_COMPILER} PARENT_SCOPE)
+  set(CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER} PARENT_SCOPE)
+  set(CMAKE_AR ${CMAKE_AR} PARENT_SCOPE)
+  set(CMAKE_RANLIB ${CMAKE_RANLIB} PARENT_SCOPE)
+  set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS ${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} PARENT_SCOPE)
+  set(TUNNING_FLAGS ${TUNNING_FLAGS} PARENT_SCOPE)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} PARENT_SCOPE)
+  set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} PARENT_SCOPE)
+  set(CMAKE_MODULE_LINKER_FLAGS ${CMAKE_MODULE_LINKER_FLAGS} PARENT_SCOPE)
+  set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} PARENT_SCOPE)
+
+  # The following is painful, it should be exactly like CMAKE_CXX_LINK_EXECUTABLE, but without the extra c compilation flags
+  string(REPLACE " <FLAGS>" "" CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+  set(CMAKE_CXX_LINK_EXECUTABLE ${CMAKE_CXX_LINK_EXECUTABLE} PARENT_SCOPE)
+
+  message(STATUS "Setting Maple Platform to ${platform_}")
+  add_maple_core()
+  foreach(lib_ ${Maple_FIND_COMPONENTS})
+    add_maple_component(${lib_})
+  endforeach()
+
+  set(MAPLE_LIBS ${MAPLE_LIBS} PARENT_SCOPE)
+  set(MAPLE_INCLUDE_DIR ${MAPLE_INCLUDE_DIR} PARENT_SCOPE)
+
+endfunction()

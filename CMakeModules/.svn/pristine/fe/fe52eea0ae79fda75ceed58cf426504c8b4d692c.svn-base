@@ -1,0 +1,110 @@
+#
+# This file loads the board configurations from "hardware/leaflabs/boards.txt"
+#
+
+
+# load the strings from "hardware/maple/boards.txt"
+file(STRINGS ${MAPLE_BOARDS_FILE} MAPLE_BOARDS_STRINGS)
+# for each string...
+foreach(abs ${MAPLE_BOARDS_STRINGS})
+  # strip whitespace and comments
+  string(STRIP ${abs} abs_strip)
+  string(REGEX REPLACE "#.*" "" abs_strip "${abs_strip}")
+  # test for an equal string
+  string(REGEX MATCH "=" eq_test "${abs_strip}")
+  if( eq_test )
+    # get name as value to the left of =, replacing '.' w/ '_' and upcasing
+    string(REGEX MATCH "^[^=]+" name ${abs_strip})
+    string(REPLACE "." "_" name ${name})
+    string(TOUPPER "${name}" name)
+    # get the value
+    string(REGEX MATCH "[^=]+$" value ${abs_strip})
+
+    # workaround issue:
+    # stk500 is actually stk500v1, so find and fix it:
+    if( "${value}" STREQUAL "stk500" )
+      set(value "stk500v1")
+    endif()
+
+    # set the name/value pair
+    set(MAPLE_${name} "${value}")
+    #Is this the name line of a given board, add it to the list of boards!
+    string(REGEX MATCH "_NAME" is_name ${name})
+    if( is_name )
+      string(REPLACE "_NAME" "" platform_name ${name})
+      string(TOLOWER  "${platform_name}" platform_name)
+#      message( "${platform_name} : ${value}")
+      set(MAPLE_SUPPORTED_PLATFORMS ${MAPLE_SUPPORTED_PLATFORMS} ${platform_name})
+    endif()
+  endif()
+endforeach()
+
+# now sort the list of boards
+list(SORT MAPLE_SUPPORTED_PLATFORMS)
+
+function( test_maple_configuration configItem_ labelName_)
+  if( NOT ${configItem_} )
+    message(WARNING "missing ${labelName_} in ${MAPLE_BOARDS_FILE}")
+  endif()
+endfunction()
+
+# sanity check the list of supported platforms, warning and removing incomplete platforms
+foreach(platform ${MAPLE_SUPPORTED_PLATFORMS})
+  string(TOUPPER "${platform}" platform_upper)
+  # if any of the parameters are missing let the developer know and tell exactly what is missing!
+  test_maple_configuration( MAPLE_${platform_upper}_NAME ${platform}.name )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_FILE_TYPE ${platform}.upload.file_type )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_MAXIMUM_SIZE ${platform}.upload.maximum_size )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_RAM_MAXIMUM_SIZE ${platform}.upload.ram.maximum_size )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_FLASH_MAXIMUM_SIZE ${platform}.upload.flash.maximum_size )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_USBID ${platform}.upload.usbID )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_ALTID ${platform}.upload.altID )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_UPLOADER ${platform}.upload.uploader )
+  test_maple_configuration( MAPLE_${platform_upper}_UPLOAD_AUTO_RESET ${platform}.upload.auto_reset )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_BOARD ${platform}.build.board )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_MCU ${platform}.build.mcu )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_FAMILY ${platform}.build.family )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_F_CPU ${platform}.build.f_cpu )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_CORE ${platform}.build.core )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_VECT ${platform}.build.vect )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_LINKER ${platform}.build.linker )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_USING ${platform}.build.using )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_DENSITY ${platform}.build.density )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_ERROR_LED_PORT ${platform}.build.error_led_port )
+  test_maple_configuration( MAPLE_${platform_upper}_BUILD_ERROR_LED_PIN ${platform}.build.error_led_pin )
+endforeach()
+
+
+function(dump_maple_platform p_)
+  string(TOUPPER "${p_}" platform_upper)
+
+  message(STATUS "MAPLE_${platform_upper}_NAME ${MAPLE_${platform_upper}_NAME}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_FILE_TYPE ${MAPLE_${platform_upper}_UPLOAD_FILE_TYPE}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_MAXIMUM_SIZE ${MAPLE_${platform_upper}_UPLOAD_MAXIMUM_SIZE}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_RAM_MAXIMUM_SIZE ${MAPLE_${platform_upper}_UPLOAD_RAM_MAXIMUM_SIZE}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_FLASH_MAXIMUM_SIZE ${MAPLE_${platform_upper}_UPLOAD_FLASH_MAXIMUM_SIZE}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_USBID ${MAPLE_${platform_upper}_UPLOAD_USBID}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_ALTID ${MAPLE_${platform_upper}_UPLOAD_ALTID}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_UPLOADER ${MAPLE_${platform_upper}_UPLOAD_UPLOADER}")
+  message(STATUS "MAPLE_${platform_upper}_UPLOAD_AUTO_RESET ${MAPLE_${platform_upper}_UPLOAD_AUTO_RESET}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_BOARD ${MAPLE_${platform_upper}_BUILD_BOARD}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_MCU ${MAPLE_${platform_upper}_BUILD_MCU}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_FAMILY ${MAPLE_${platform_upper}_BUILD_FAMILY}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_F_CPU ${MAPLE_${platform_upper}_BUILD_F_CPU}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_CORE ${MAPLE_${platform_upper}_BUILD_CORE}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_VECT ${MAPLE_${platform_upper}_BUILD_VECT}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_LINKER ${MAPLE_${platform_upper}_BUILD_LINKER}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_USING ${MAPLE_${platform_upper}_BUILD_USING}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_DENSITY ${MAPLE_${platform_upper}_BUILD_DENSITY}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_ERROR_LED_PORT ${MAPLE_${platform_upper}_BUILD_ERROR_LED_PORT}")
+  message(STATUS "MAPLE_${platform_upper}_BUILD_ERROR_LED_PIN ${MAPLE_${platform_upper}_BUILD_ERROR_LED_PIN}")
+endfunction()
+
+# this is a function to dump the Supported Platform list
+function(show_maple_platforms)
+  message( "Supported platforms:")
+  foreach(platform ${MAPLE_SUPPORTED_PLATFORMS})
+    string(TOUPPER "${platform}" platform_upper)
+    message( "\t${platform} : ${MAPLE_${platform_upper}_NAME}")
+  endforeach()
+endfunction()

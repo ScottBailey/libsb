@@ -68,6 +68,26 @@ int main(int,char**) {
          std::cerr << "line " << __LINE__ << ": element " << i << " of accumulator has the wrong value: " << unsigned(accum[i]) << std::endl;
    }
 
+   // Cause the elements contained inside the accumulator to be resized/moved around.
+   {
+      const auto& a = accum.back(6);
+      if(a.size() != 6)
+         std::cerr << "line " << __LINE__ << ": unexpected size: " << a.size() << std::endl;
+   }
+
+   // Test data.
+   for(size_t i=0; i < accum.size(); ++i) {
+      if( i != size_t(accum[i]))
+         std::cerr << "line " << __LINE__ << ": element " << i << " of accumulator has the wrong value: " << unsigned(accum[i]) << std::endl;
+   }
+
+
+   {
+      const auto& a = accum.back();
+      if(a.size() != 6)
+         std::cerr << "line " << __LINE__ << ": unexpected size: " << a.size() << std::endl;
+   }
+
 
    // Add more tests as time allows.
 

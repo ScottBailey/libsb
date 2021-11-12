@@ -303,8 +303,8 @@ inline T accumulator<T>::pop_back_i() noexcept {
 
 
 template <typename T>
-inline T accumulator<T>::pop_front()
-{
+inline T accumulator<T>::pop_front() {
+
    if( m_list.empty() )
       throw std::out_of_range("sb::message::accumulator<T> is empty, can not pop_front() when empty...");
 
@@ -313,8 +313,8 @@ inline T accumulator<T>::pop_front()
 
 
 template <typename T>
-inline T accumulator<T>::pop_front(size_t n)
-{
+inline T accumulator<T>::pop_front(size_t n) {
+
    if(!n)
       return T{};
 
@@ -331,8 +331,8 @@ inline T accumulator<T>::pop_front(size_t n)
 
 
 template <typename T>
-inline T accumulator<T>::pop_front_i() noexcept
-{
+inline T accumulator<T>::pop_front_i() noexcept {
+
    assert(!m_list.empty());
 
    T rv = std::move( m_list.front() );
@@ -343,8 +343,8 @@ inline T accumulator<T>::pop_front_i() noexcept
 
 
 template <typename T>
-inline void accumulator<T>::push_back(const T& t)
-{
+inline void accumulator<T>::push_back(const T& t) {
+
    if( t.empty() )
       return;
    m_size += t.size();
@@ -353,8 +353,8 @@ inline void accumulator<T>::push_back(const T& t)
 
 
 template <typename T>
-inline void accumulator<T>::push_back(T&& t)
-{
+inline void accumulator<T>::push_back(T&& t) {
+
    if( t.empty() )
       return;
    m_size += t.size();
@@ -363,8 +363,8 @@ inline void accumulator<T>::push_back(T&& t)
 
 
 template <typename T>
-inline void accumulator<T>::push_front(const T& t)
-{
+inline void accumulator<T>::push_front(const T& t) {
+
    if( t.empty() )
       return;
    m_size += t.size();
@@ -373,8 +373,8 @@ inline void accumulator<T>::push_front(const T& t)
 
 
 template <typename T>
-inline void accumulator<T>::push_front(T&& t)
-{
+inline void accumulator<T>::push_front(T&& t) {
+
    if( t.empty() )
       return;
    m_size += t.size();
@@ -383,40 +383,39 @@ inline void accumulator<T>::push_front(T&& t)
 
 
 template <typename T>
-void accumulator<T>::resize_back_i(size_t sz) noexcept
-{
+void accumulator<T>::resize_back_i(size_t sz) noexcept {
+
    assert(sz <= m_size);
    assert(!m_list.empty());
 
+   // Do nothing if back is already correctly sized.
    if( m_list.back().size() == sz )
       return;
 
-   T t{sz};
-   size_t remain{sz};
-   while( remain )
-   {
-      size_t s2 = m_list.back().size();
-      if( s2 <= remain )
-      {
-         remain -= s2;
-         memcpy(t.data()+remain, m_list.back().data(), s2);
-         m_list.pop_back();
+   T t(sz); // target/replacement, will be pushed to the back after other values are popped.
+   size_t remain(sz);
+   while( remain ) {
+
+      size_t s2 = m_list.back().size();                     // size of the back element
+      if( s2 <= remain ) {                                  // If all of back fits in the target
+         remain -= s2;                                      // Update remain
+         memcpy(t.data()+remain, m_list.back().data(), s2); // Copy the data.
+         m_list.pop_back();                                 // Remove the element.
       }
-      else
-      {
-         T extra{s2-remain};
-         memcpy(extra.data(), m_list.back().data(), extra.size());
+      else {                                                            // We're going to need to move some, but not all.
+         T extra(s2-remain);                                            // This data is pushed back before target.
+         memcpy(extra.data(), m_list.back().data(), extra.size());      // Copy from back to extra.
 
-         memcpy(t.data(), m_list.back().data() + extra.size(), remain);
-         remain = 0;
+         memcpy(t.data(), m_list.back().data() + extra.size(), remain); // Copy the remaining bytes from back to target.
+         //remain = 0;                                                  // Optimize out with a break.
 
-         m_list.pop_back();
-         m_list.push_back(std::move(extra));
-         break;
+         m_list.pop_back();                                             // Remove back. It became extra and target.
+         m_list.push_back(std::move(extra));                            // Push in extra.
+         break;                                                         // ...and break.
       }
    }
 
-   m_list.push_back(std::move(t));
+   m_list.push_back(std::move(t)); // Push in target/replacement.
 }
 
 
@@ -432,26 +431,24 @@ void accumulator<T>::resize_front_i(size_t sz) noexcept
 
    T t(sz);                     // storage for the future front
    size_t sum{0};               // running total (sum) of bytes copied to t
-   while(sum < sz )
-   {
+   while(sum < sz ) {
+
       size_t s2 = m_list.front().size(); // size of the current front
       size_t need = sz - sum;            // bytes needed to complete this process
-      if( need >= s2 )                   // test: do we need at least as many bytes or more than front() has?
-      {
+      if( need >= s2 ) {                 // test: do we need at least as many bytes or more than front() has?
          memcpy(t.data()+sum, m_list.front().data(), s2); // copy all data from front() to appropriate location in t
          m_list.pop_front();                              // remove the now copied object
          sum += s2;                                       // increase the running total of bytes copied to t
       }
-      else                 // this is the case where we need less bytes than front() has, so we will need to push the tail back in
-      {
+      else {               // this is the case where we need less bytes than front() has, so we will need to push the tail back in
          memcpy(t.data()+sum, m_list.front().data(), need); // copy need(ed) data from front() to appropriate location in t
 
          T extra(s2-need);                                               // create a new item sized to the remainder of data in front()
          memcpy(extra.data(), m_list.front().data()+need, extra.size()); // copy remainder of data from front() to new item
          m_list.pop_front();                                             // remove the now fully copied item
          m_list.push_front(std::move(extra));                            // push the new item with the remaining data to the front
-         //sum += need;                                                  // increase the running total of bytes copied to t
-         break;                                                          // optimize loop exit
+         //sum += need;                                                  // increase the running total of bytes copied to t (optimized to break)
+         break;                                                          // optimize loop exit to remove add and test
       }
    }
 

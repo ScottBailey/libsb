@@ -32,6 +32,29 @@ int main(int,char**) {
          std::cerr << "line " << __LINE__ << ": element " << i << " of accumulator has the wrong value: " << unsigned(accum[i]) << std::endl;
    }
 
+   // Test iteration.
+   {
+      auto a = accum.begin();
+      if(*a != 0)
+         std::cerr << "line " << __LINE__ << ": iterator has the wrong value: " << unsigned(*a) << std::endl;
+      ++a;
+      if(*a != 1)
+         std::cerr << "line " << __LINE__ << ": iterator has the wrong value: " << unsigned(*a) << std::endl;
+      std::advance(a,3);
+      if(*a != 4)
+         std::cerr << "line " << __LINE__ << ": iterator has the wrong value: " << unsigned(*a) << std::endl;
+      --a;
+      if(*a != 3)
+         std::cerr << "line " << __LINE__ << ": iterator has the wrong value: " << unsigned(*a) << std::endl;
+      std::advance(a,8);
+      if(*a != 11)
+         std::cerr << "line " << __LINE__ << ": iterator has the wrong value: " << unsigned(*a) << std::endl;
+      ++a;
+      if(a != accum.end())
+         std::cerr << "line " << __LINE__ << ": iterator has the wrong value: " << unsigned(*a) << std::endl;
+   }
+
+
    // Cause the elements contained inside the accumulator to be resized/moved around.
    {
       const auto& a = accum.front(6);

@@ -125,6 +125,64 @@ inline void accumulator<T>::clear() {
 
 
 template <typename T>
+inline void accumulator<T>::decrement(typename accumulator<T>::iterator& i) {
+
+   assert(i.i < m_list.size());
+
+   // Try to decrement within the current list item.
+   {
+      T& temp = m_list[i.i];
+      if(i.p != temp.data()) {
+         // Can decrement, so do it.
+         --i.p;
+         return;
+      }
+   }
+
+   // Test for end.
+   if(i.i == 0) {
+      // end, set to nullptr.
+      i.p = nullptr;
+      return;
+   }
+
+   // Decrement the list index and find the updated data location.
+   --i.i;
+   T& temp = m_list[i.i];
+   i.p = temp.data() + temp.size() - 1;
+}
+
+
+template <typename T>
+inline void accumulator<T>::decrement(typename accumulator<T>::const_iterator& i) const {
+
+   assert(i.i < m_list.size());
+
+   // Try to decrement within the current list item.
+   {
+      const T& temp = m_list[i.i];
+      if(i.p != temp.data()) {
+         // Can decrement, so do it.
+         --i.p;
+         return;
+      }
+   }
+
+   // Test for end.
+   if(i.i == 0) {
+      // end, set to nullptr.
+      i.p = nullptr;
+      return;
+   }
+
+   // Decrement the list index and find the updated data location.
+   --i.i;
+   const T& temp = m_list[i.i];
+   i.p = temp.data() + temp.size() - 1;
+}
+
+
+template <typename T>
 inline bool accumulator<T>::empty() const {
    return m_size == 0;
 }

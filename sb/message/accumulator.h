@@ -34,8 +34,6 @@
 #include <sb/message/detail/accum_iterator.ipp>
 
 
-/// @todo better documentation plus
-
 
 namespace sb {
 namespace message {
@@ -44,6 +42,7 @@ namespace message {
 /// @TODO Add overview documentation.
 /// @note T::value_type must be of a size 1 type.
 /// @note T must have a data() function.
+/// @note T must have a constructor with the signature T(size_t n) that will create an object of type T with n elements.
 template <typename T>
 class accumulator
 {

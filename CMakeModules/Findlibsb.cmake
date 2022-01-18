@@ -1,7 +1,7 @@
 #
 # Find the include directory for libsb
 #
-# Copyright 2015-2021 Scott Bailey
+# Copyright 2015-2022 Scott Bailey
 # License: BSD 2.0
 #
 #
@@ -31,9 +31,11 @@
 
 find_path( LIBSB_INCLUDE_DIR    sb/thread/auto_thread.hpp  sb/thread/auto_thread.h
   PATHS
+    ${CMAKE_CURRENT_LIST_DIR}/..
     ~/projects
     ~/bailey
   PATH_SUFFIXES
+    libsb/include
     libsb
     libsb/trunk
   NO_DEFAULT_PATH

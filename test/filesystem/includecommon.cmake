@@ -15,6 +15,7 @@ set( USER_HOME_MODULES_SUFFIXES
 find_path(USER_HOME_MODULES_PATH
     common.cmake
   PATHS
+    ${LIBSB_ROOT}
     ${USER_HOME_PATH}/.local
     ${USER_HOME_PATH}
     ${USER_HOME_PATH}/bailey

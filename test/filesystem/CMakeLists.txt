@@ -3,12 +3,10 @@ cmake_minimum_required(VERSION 3.0.0)
 set(target_name fs)
 project("${target_name}")
 
-#include the common stuff
+#include the common stuff and find the libsb package
+set(LIBSB_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 include( ./includecommon.cmake REQUIRED )
-
-# Find the libsb package
 find_package(libsb REQUIRED)
-
 
 file(GLOB_RECURSE src_cpp src/*.cpp )
 file(GLOB_RECURSE src_h src/*.h)

@@ -38,6 +38,7 @@
 #elif defined(__APPLE__)
 # include <mach-o/dyld.h>       // _NSGetExecutablePath()
 #elif defined(_WIN32)
+# include <windows.h>
 # include <libloaderapi.h>      // GetModuleFileNameW()
 # include <errhandlingapi.h>    // GetLastError()
 # include <stdlib.h>            // _MAX_PATH
